@@ -42,13 +42,19 @@ void processInput() {
   static char *save;
   bool running = true;
   char req;
+  char *arg;
   while(running) {
     getline(&input, &inLen, stdin);
     args = strtok_r(input, " ", &save); 
     req = *args;
     switch(req) {
       case 'A' :
-
+        arg = strtok_r(NULL, " ", &save);
+        char name = *arg;
+        int size = atoi(strtok_r(NULL, " ", &save));
+        arg = strtok_r(NULL, " ", &save);
+        char algo = *arg;
+        allocateMem(name, size, algo);
       case 'F' : 
       case 'S' : 
       case 'R' : 
