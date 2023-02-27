@@ -1,3 +1,27 @@
+/*
+  created by Ali Ibrahim
+
+  Description:
+   - program to emulate the ways memory can be allocated with the best, worst, and first fit approaches; compression, freeing, and displaying memory contents
+
+  Design:
+   - Linked list approach that starts with one node repersenting the whole, 80-sized memory block
+
+   - allocation: will look for nodes repersenting empty memory (i.e. '.') and check their sizes to see if they fit
+     and/or are a better fit based on the approach used. Once a "empty memory" node is chosen, the node will split
+     into a node with the allocated name and size and another node holding the leftover contents of the memory node.
+
+   - freeing: nodes will find memory nodes matching the name passed in and will set their name to '.', meaning its now free memory.
+     Neighboring nodes to those freed, if also "empty", must be fused together with the newly freed memory.
+
+   - compacting: deletes all "empty" nodes from the linked list while keeping a total of their combined space. Finally
+     creates a new node at the end of list holding "empty" memory, equal to the combined size found.
+
+  How to run:
+   - gcc memory.c
+   - ./a.out
+*/
+
 //imports
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,9 +39,8 @@ typedef struct node node;
 
 node *head;
 
+//splits a empty node into the allocated node and a leftover empty mem node
 void mitosis(char name, int size, node* prevFit, node* fit) {
-  // printf("---mitosis---\n");
-  // fflush(stdout);
   if (fit == NULL) return;
   if (size == fit->size) {
     //size is equal, no mitosis, just replace contents
@@ -40,6 +63,7 @@ void mitosis(char name, int size, node* prevFit, node* fit) {
   }
 }
 
+// allocating mempry using the worst fit algo
 void worstFit(char name, int size) {
   node *prevFit = NULL;
   node *fit = NULL;
@@ -60,6 +84,7 @@ void worstFit(char name, int size) {
   mitosis(name, size, prevFit, fit);
 }
 
+// allocating memory using the bets fit algo
 void bestFit(char name, int size) {
   node *prevFit = NULL;
   node *fit = NULL;
@@ -80,9 +105,8 @@ void bestFit(char name, int size) {
   mitosis(name, size, prevFit, fit);
 }
 
+// allocating memory using the first fit algo
 void firstFit(char name, int size) {
-  // printf("---firstFit---\n");
-  // fflush(stdout);
   node *prevFit = NULL;
   node *fit = NULL;
   node *prev = NULL;
@@ -103,9 +127,8 @@ void firstFit(char name, int size) {
   mitosis(name, size, prevFit, fit);
 }
 
+// allocates memory given an algo and the alloc details
 void allocateMem(char name, int size, char algo) {
-  // printf("---allocateMem---\n");
-  // fflush(stdout);
   switch (algo) {
     case 'F' :
       firstFit(name, size);
@@ -119,9 +142,8 @@ void allocateMem(char name, int size, char algo) {
   }
 }
 
+//fuses right neighboring empty nodes
 void rightFusion(node* rmv) {
-  // printf("---rightFusion---\n");
-  // fflush(stdout);
   if (rmv->next != NULL && rmv->next->name == '.') {
     rmv->size += rmv->next->size;
     node *dlt = rmv->next;
@@ -131,9 +153,8 @@ void rightFusion(node* rmv) {
   }
 }
 
+// fuses left neighboring empty nodes
 bool leftFusion(node *prevRmv, node **rmv) {
-  // printf("---leftFusion---\n");
-  // fflush(stdout);
   if (prevRmv->name == '.') {
     prevRmv->size += (*rmv)->size;
     prevRmv->next = (*rmv)->next;
@@ -145,9 +166,9 @@ bool leftFusion(node *prevRmv, node **rmv) {
   return false;
 }
 
+// finds all memeory nodes with the passed in name and
+// sets them to be empty, fuses neighoring empty nodes.
 void freeMem(char name) {
-  // printf("---freeMem---\n");
-  // fflush(stdout);
   //remove pointers
   node *prevPrevRmv = NULL;
   node *prevRmv = NULL;
@@ -188,6 +209,8 @@ void freeMem(char name) {
   }
 }
 
+// compacts all the memory, taking all empty memory and placing at
+// end of the list
 void compactMem() {
   int empty = 0;
   node *prev = NULL;
@@ -217,6 +240,7 @@ void compactMem() {
   }
 }
 
+// prints out all the memory content
 void showMem() {
   node *curr = head;
   while (curr != NULL) {
@@ -230,9 +254,9 @@ void showMem() {
 
 void readFile(char *file);
 
+// processes a request, redirects program to corrosponding request method
 bool processRequest(char *request) {
-  // printf("---processRequest---\n");
-  // fflush(stdout);
+  char *del = " \n";
   static char *save;
   char *args;
   char *arg;
@@ -241,63 +265,75 @@ bool processRequest(char *request) {
   char name;
   char algo;
   int size;
-  args = strtok_r(request, " ", &save); 
+  args = strtok_r(request, del, &save); 
+  if (args == NULL) return true;
   req = *args;
   switch(req) {
+    // allocation
     case 'A' :
-      arg = strtok_r(NULL, " ", &save);
+      arg = strtok_r(NULL, del, &save);
       name = *arg;
-      size = atoi(strtok_r(NULL, " ", &save));
-      arg = strtok_r(NULL, " ", &save);
+      size = atoi(strtok_r(NULL, del, &save));
+      arg = strtok_r(NULL, del, &save);
       algo = *arg;
       allocateMem(name, size, algo);
       break;
+    // free
     case 'F' : 
-      arg = strtok_r(NULL, " ", &save);
+      arg = strtok_r(NULL, del, &save);
       name = *arg;
       freeMem(name);
       break;
+    // show
     case 'S' : 
       showMem();
       break;
+    // read file
     case 'R' : 
-      file = strtok_r(NULL, " ", &save);
+      file = strtok_r(NULL, del, &save);
       readFile(file);
       break;
+    // compression
     case 'C' : 
       compactMem();
       break;
-    default : 
+    // exit
+    case 'E': 
       return false;
   }
   return true;
 }
 
+// reads each request from a file and processes it
 void readFile(char *file) {
-
+  FILE *fp;
+  char *req = NULL;
+  size_t reqLen = 0;
+  fp = fopen(file, "r");
+  
+  if (fp == NULL) exit(EXIT_FAILURE);
+  while (getline(&req, &reqLen, fp) != -1) {
+      processRequest(req);
+  }
+  fclose(fp);
 }
 
+// prompts user for requests and processes each one
 void processInput() {
-  // printf("---processInput---\n");
-  // fflush(stdout);
   size_t inLen = 0;
   char *input = NULL;
   bool running = true;
   while(running) {
-    printf(">");
-    fflush(stdout);
     getline(&input, &inLen, stdin);
     running = processRequest(input);
   }
 }
 
-
+// starts program and starts command prompt input process
 int main(int argc, char **argv) {
   head = (node *) malloc(sizeof(node));
   head->name = '.';
   head->size = MEMSIZE;
   head->next = NULL;
-  // printf("---main---\n");
-  // fflush(stdout);
   processInput();
 }
